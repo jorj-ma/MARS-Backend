@@ -16,6 +16,7 @@ flask-bcrypt = "*"
 marshmallow-sqlalchemy = "*"
 scapy = "*"
 requests = "*"
+sqlalchemy-serializer = "*"
 
 [dev-packages]
 
