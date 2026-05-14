@@ -35,14 +35,15 @@ def create_app(config_class=Config):
     from app.routes.attendance import attendance_bp
     from app.routes.auth import auth_bp
     from app.routes.departments import dept_bp
+    from app.routes.students import students_bp
+    from app.routes.reports import routes_bp
 
     app.register_blueprint(auth_bp, url_prefix='auth')
     app.register_blueprint(attendance_bp, url_prefix='attendance')
-    app.register_blueprint()
-    # Register bleprints here eg:
-        #     from app.routes.auth import auth_bp
-        #     app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(dept_bp, url_prefix='departments')
+    app.register_blueprint(students_bp, url_prefix='students')
+    app.register_blueprint(routes_bp, url_prefix='reports')
 
-    
+
 
     return app
