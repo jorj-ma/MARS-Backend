@@ -36,7 +36,7 @@ def create_app(config_class=Config):
     from app.routes.auth import auth_bp
     from app.routes.departments import dept_bp
     from app.routes.students import students_bp
-    from app.routes.reports import reports_bp  # Corrected name
+    from app.routes.reports import reports_bp 
 
     # Register Blueprints with leading slashes in prefixes
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -44,5 +44,7 @@ def create_app(config_class=Config):
     app.register_blueprint(dept_bp, url_prefix='/departments')
     app.register_blueprint(students_bp, url_prefix='/students')
     app.register_blueprint(reports_bp, url_prefix='/reports')
+
+    from app import models
 
     return app
