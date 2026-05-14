@@ -5,6 +5,8 @@ from flask_bcrypt import Bcrypt
 from app.config import Config
 from flask_cors import CORS
 from flask_migrate import Migrate
+from flask_jwt_extended import JWTManager
+
 
 
 metadata = MetaData(naming_convention={
@@ -17,6 +19,7 @@ metadata = MetaData(naming_convention={
 db = SQLAlchemy(metadata=metadata)
 bcrypt = Bcrypt()
 migrate = Migrate()
+jwt=JWTManager()
 
 def create_app(config_class=Config):
     app =Flask(__name__)
@@ -26,9 +29,16 @@ def create_app(config_class=Config):
     db.init_app(app)
     bcrypt.init_app(app)
     migrate.init_app(app, db)
+    jwt.init_app(app)
     CORS(app)
 
-    from app.models import Teacher, Student, Department, Device, AttendanceLog, Report
+    from app.routes.attendance import attendance_bp
+    from app.routes.auth import auth_bp
+    from app.routes.departments import dept_bp
+
+    app.register_blueprint(auth_bp, url_prefix='auth')
+    app.register_blueprint(attendance_bp, url_prefix='attendance')
+    app.register_blueprint()
     # Register bleprints here eg:
         #     from app.routes.auth import auth_bp
         #     app.register_blueprint(auth_bp, url_prefix='/api/auth')
