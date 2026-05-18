@@ -68,7 +68,7 @@ def generate_report():
         dept_id=dept_id,
         report_type=report_type,
         average_attendance=round(float(avg_attendance), 2),
-        generated_at=datetime.utcnow()
+        generated_at=datetime.now()
     )
 
     try:
@@ -110,7 +110,7 @@ def export_report_csv(id):
         Student.last_name, 
         Student.student_code,
         Student.status,
-        func.count(AttendanceLog.log_id)
+        func.count(func.distinct(func.date(AttendanceLog.timestamp)))
     ).outerjoin(AttendanceLog).filter(
         Student.dept_id == report.dept_id
     ).group_by(Student.student_id).all()
@@ -121,7 +121,7 @@ def export_report_csv(id):
     # Return as a downloadable file response
     output.seek(0)
     return Response(
-        output,
+        output.getvalue(),
         mimetype="text/csv",
         headers={"Content-disposition": f"attachment; filename=MARS_Report_{id}.csv"}
     )
