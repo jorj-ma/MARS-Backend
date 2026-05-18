@@ -71,6 +71,9 @@ class AttendanceLog(db.Model, SerializerMixin):
     timestamp = db.Column(db.DateTime, server_default=db.func.now())
     status = db.Column(db.String) # Active, Roaming, Absent
 
+    # Relationship
+    device = db.relationship('Device', backref='attendance_logs')
+
 class Report(db.Model, SerializerMixin):
     __tablename__ = 'reports'
     
@@ -80,5 +83,7 @@ class Report(db.Model, SerializerMixin):
     generated_at = db.Column(db.DateTime, server_default=db.func.now())
     report_type = db.Column(db.String)
     average_attendance = db.Column(db.Float)
+
+    serialize_rules = ('-department.reports', '-teacher.reports', '-department.students', '-department.teachers')
 
     # Mac_address_registration_system_database
