@@ -14,6 +14,10 @@ class Teacher(db.Model, SerializerMixin):
     join_date = db.Column(db.DateTime, server_default=db.func.now())
     last_login = db.Column(db.DateTime)
 
+    # Safe serialization rules
+    serialize_only = ('teacher_id', 'first_name', 'last_name', 'email', 'role', 'dept_id')
+    serialize_rules = ('-password', '-reports')
+
     # Relationships
     reports = db.relationship('Report', backref='teacher', lazy=True)
     dept_id = db.Column(db.Integer, db.ForeignKey('departments.dept_id'))
@@ -49,10 +53,17 @@ class Student(db.Model, SerializerMixin):
     dept_id = db.Column(db.Integer, db.ForeignKey('departments.dept_id'), nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
+    # Safe serialization
+    serialize_only = ('student_id', 'first_name', 'last_name', 'email', 'dept_id')
+    serialize_rules = ('-devices.student', '-dept.students')
+
     # Relationships
     devices = db.relationship('Device', backref='owner', lazy=True, cascade="all, delete-orphan")
-    attendance_logs = db.relationship('AttendanceLog', backref='student', lazy=True)
-
+    attendance_logs = db.relationship(
+            'AttendanceLog', 
+            backref='student', 
+            cascade='all, delete-orphan'
+        )
 class Device(db.Model, SerializerMixin):
     __tablename__ = 'devices'
     
@@ -61,6 +72,9 @@ class Device(db.Model, SerializerMixin):
     device_name = db.Column(db.String) # e.g. Aria's MacBook Pro
     student_id = db.Column(db.Integer, db.ForeignKey('students.student_id'), nullable=False)
     registration_date = db.Column(db.DateTime, server_default=db.func.now())
+
+    serialize_rules = ('-student.devices',)
+
 
 class AttendanceLog(db.Model, SerializerMixin):
     __tablename__ = 'attendance_logs'
