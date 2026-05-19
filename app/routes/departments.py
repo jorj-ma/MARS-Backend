@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from app import db
 from app.models import Department
 from flask_jwt_extended import jwt_required
-# from sqlalchemy import func
+from sqlalchemy import func
 
 dept_bp = Blueprint('departments', __name__)
 
