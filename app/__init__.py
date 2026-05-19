@@ -6,6 +6,8 @@ from app.config import Config
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
+from flask import jsonify
+from werkzeug.exceptions import BadRequest
 
 metadata = MetaData(naming_convention={
     "ix": 'ix_%(column_0_label)s',
@@ -23,6 +25,21 @@ jwt = JWTManager()
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # global error handling for missing data
+    @app.errorhandler(KeyError)
+    def handle_missing_key_error(e):
+        return jsonify({
+            "status": "error",
+            "message": f"Missing required input field: {str(e)}"
+        }), 400
+
+    @app.errorhandler(TypeError)
+    def handle_invalid_type_error(e):
+        return jsonify({
+            "status": "error",
+            "message": "Invalid data format or type provided in request body."
+        }), 400
 
     # Initialize extensions
     db.init_app(app)
