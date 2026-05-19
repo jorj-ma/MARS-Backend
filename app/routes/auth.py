@@ -51,7 +51,7 @@ def login():
         access_token = create_access_token(identity=str(teacher.teacher_id))
         return jsonify({
             "access_token": access_token,
-            "user": teacher.to_dict(rules=('-password', '-reports'))
+            "user": teacher.to_dict()
         }), 200
     
     return jsonify({"message": "Invalid email or password"}), 401

@@ -79,8 +79,22 @@ def create_student():
 def get_student_details(id):
     student = Student.query.get_or_404(id)
     # Include devices in the response
-    student_data = student.to_dict()
-    student_data['devices'] = [d.to_dict() for d in student.devices]
+    student_data = {
+        "student_id": student.student_id,
+        "student_code": student.student_code,
+        "first_name": student.first_name,
+        "last_name": student.last_name,
+        "email": student.email,
+        "dept_id": student.dept_id,
+        "devices": [
+            {
+                "device_id": d.device_id,
+                "mac_address": d.mac_address,
+                "device_name": d.device_name
+            } for d in student.devices
+        ]
+    }
+
     return jsonify(student_data), 200
 
 # DELETE /students/<id> - Remove student and associated devices
