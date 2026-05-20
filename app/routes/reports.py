@@ -38,37 +38,44 @@ def generate_report():
     Calculates department-wide average attendance and saves a 
     new report record to the database.
     """
-    data = request.get_json()
+    data = request.get_json() or {}
     current_teacher_id = get_jwt_identity()
     
     dept_id = data.get('dept_id')
     report_type = data.get('report_type', 'Departmental Summary') # e.g., Weekly, Monthly
-    
-    if not dept_id:
-        return jsonify({"message": "dept_id is required"}), 400
 
-    # 1. Logic: Calculate Average Attendance for this Department
-    # Total registered students in this department
-    total_students = Student.query.filter_by(dept_id=dept_id).count()
+    if not dept_id:
+        return jsonify({"error": "Field 'dept_id' is required"}), 400
     
-    if total_students == 0:
-        avg_attendance = 0.0
+    # Inside a route or report generator
+    if dept_id == 999:
+        # Global scope: count ALL students in the school
+        total_students_count = Student.query.count()
+        
+        students_present_count = db.session.query(func.count(func.distinct(AttendanceLog.student_id)))\
+            .join(Student)\
+            .scalar() or 0
     else:
-        # Count unique students from this department who have recorded logs
-        students_present = db.session.query(func.count(func.distinct(AttendanceLog.student_id)))\
+        # Departmental scope: count within specific group
+        total_students_count = Student.query.filter_by(dept_id=dept_id).count()
+        
+        students_present_count = db.session.query(func.count(func.distinct(AttendanceLog.student_id)))\
             .join(Student)\
             .filter(Student.dept_id == dept_id)\
-            .scalar()
-        
-        avg_attendance = (students_present / total_students) * 100
-
+            .scalar() or 0
+    
+    # 2. Prevent division by zero safely
+    if total_students_count == 0:
+        avg_attendance = 0.0
+    else:
+        avg_attendance = (students_present_count / total_students_count) * 100
     # 2. Create the Report instance
     new_report = Report(
         teacher_id=current_teacher_id,
         dept_id=dept_id,
         report_type=report_type,
         average_attendance=round(float(avg_attendance), 2),
-        generated_at=datetime.utcnow()
+        generated_at=datetime.now()
     )
 
     try:
@@ -90,11 +97,15 @@ def generate_report():
 def export_report_csv(id):
     """Generates a downloadable CSV summary of students and their attendance counts."""
     report = Report.query.get_or_404(id)
-    dept = Department.query.get(report.dept_id)
     
     # Setup string-based file in memory
     output = io.StringIO()
     writer = csv.writer(output)
+    if report.dept_id == 999:
+        dept_name = "All Departments (Global)"
+    else:
+        dept = Department.query.get(report.dept_id)
+        dept_name = dept.dept_name if dept else "N/A"
     
     # Write Metadata Headers
     writer.writerow(['Report Title', report.report_type])
@@ -110,7 +121,7 @@ def export_report_csv(id):
         Student.last_name, 
         Student.student_code,
         Student.status,
-        func.count(AttendanceLog.log_id)
+        func.count(func.distinct(func.date(AttendanceLog.timestamp)))
     ).outerjoin(AttendanceLog).filter(
         Student.dept_id == report.dept_id
     ).group_by(Student.student_id).all()
@@ -121,7 +132,7 @@ def export_report_csv(id):
     # Return as a downloadable file response
     output.seek(0)
     return Response(
-        output,
+        output.getvalue(),
         mimetype="text/csv",
         headers={"Content-disposition": f"attachment; filename=MARS_Report_{id}.csv"}
     )
