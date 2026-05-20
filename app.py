@@ -1,5 +1,17 @@
 from app import create_app
 
-app=create_app()
-if __name__=="__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
+# Initialize the Flask application using the factory function
+app = create_app()
+
+# Register a landing route right here to handle the root URL entry point
+@app.route('/')
+def home():
+    return {
+        "status": "online",
+        "message": "MARS API Backend is operating optimally",
+        "version": "1.0.0"
+    }, 200
+
+if __name__ == '__main__':
+    # Run the server on port 5001 as you verified earlier
+    app.run(debug=True, port=5001)

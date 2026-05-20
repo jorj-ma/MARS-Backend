@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
 from app.models import db, Student, Device, AttendanceLog
-from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from sqlalchemy import func
 
@@ -32,12 +31,10 @@ def create_student():
         if not data.get(field):
             return jsonify({"error": f"Field '{field}' is required"}), 400
         
-        # Clean unique identifiers to match standard storage formatting
     student_code_clean = str(data['student_code']).strip().upper()
     email_clean = str(data['email']).strip().lower()
     mac_clean = str(data['mac_address']).strip().lower()
 
-    # 2. Check for unique conflicts before hitting the DB constraints
     if Student.query.filter_by(student_code=student_code_clean).first():
         return jsonify({"error": f"Student code '{student_code_clean}' is already registered"}), 400
         
@@ -48,7 +45,6 @@ def create_student():
         return jsonify({"error": f"MAC address '{data['mac_address']}' is already assigned to a device"}), 400
     
     try:
-        # 1. Create Student
         new_student = Student(
             student_code=data['student_code'],
             first_name=data['first_name'],
@@ -57,9 +53,8 @@ def create_student():
             dept_id=data['dept_id']
         )
         db.session.add(new_student)
-        db.session.flush()  # Get student_id before committing
+        db.session.flush() 
 
-        # 2. Create associated Device
         new_device = Device(
             mac_address=data['mac_address'],
             device_name=data.get('device_name', f"{data['first_name']}'s Device"),
@@ -78,7 +73,6 @@ def create_student():
 @jwt_required()
 def get_student_details(id):
     student = Student.query.get_or_404(id)
-    # Include devices in the response
     student_data = {
         "student_id": student.student_id,
         "student_code": student.student_code,
@@ -94,7 +88,6 @@ def get_student_details(id):
             } for d in student.devices
         ]
     }
-
     return jsonify(student_data), 200
 
 # DELETE /students/<id> - Remove student and associated devices
@@ -103,22 +96,19 @@ def get_student_details(id):
 def delete_student(id):
     student = Student.query.get_or_404(id)
     try:
-        db.session.delete(student)  # Triggers cascade mapping constraints on child records
+        db.session.delete(student)  
         db.session.commit()
         return jsonify({"message": f"Student {id} and all related hardware profiles dropped successfully"}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Failed to delete student record", "details": str(e)}), 500
 
-
+# GET /students/<id>/activity - Fetch activity logs for the student
 @students_bp.route('/<int:id>/activity', methods=['GET'])
 @jwt_required()
 def get_student_activity(id):
-    # Verify student exists
     student = Student.query.get_or_404(id)
     
-    # Query to group logs by date and count hits
-    # This specifically looks for "Active" status logs for this student
     activity_query = db.session.query(
         func.date(AttendanceLog.timestamp).label('date'),
         func.count(AttendanceLog.log_id).label('count')
@@ -129,12 +119,9 @@ def get_student_activity(id):
         func.date(AttendanceLog.timestamp)
     ).all()
 
-    # Format the data into a list of dictionaries for the frontend heatmap
-    # Example: [{"date": "2026-05-10", "count": 4}, ...]
     heatmap_data = []
     for row in activity_query:
         if row.date:
-            # Handles both datetime object items and string translations cleanly
             date_str = row.date.strftime('%Y-%m-%d') if hasattr(row.date, 'strftime') else str(row.date)
             heatmap_data.append({
                 "date": date_str,
