@@ -170,7 +170,7 @@ string injected into the request's `Authorization` header.
 
 The `utils/scanner.py` script acts as a portable network sniffer.
 
-To deploy this to end-users (Teachers) as a standalone consumer app, run `sudo python3 app/utils/scanner.py` from the root folder, outside the virtual environment.
+To deploy this to end-users (Teachers) as a standalone consumer app, run `sudo $(pipenv --py) app/utils/scanner.py` from the root folder, outside the virtual environment.
 
 
 # Known Operational Nuances
