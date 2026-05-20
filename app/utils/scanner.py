@@ -7,7 +7,7 @@ from scapy.all import ARP, Ether, srp, conf
 # CONFIGURATION
 # ==========================================
 # Replace with your actual production or local backend URL
-API_URL = "http://127.0.0.1:5000/attendance/scan" 
+API_URL = "http://127.0.0.1:5001/attendance/scan" 
 
 # Standard WiFi interface for most Linux/Ubuntu systems
 INTERFACE = conf.iface
