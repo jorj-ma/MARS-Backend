@@ -10,7 +10,6 @@ attendance_bp = Blueprint('attendance', __name__)
 def scan_mac():
     data = request.get_json() or {}
 
-    # Accept either a single MAC or a list
     mac_list = data.get("mac_addresses") or []
     if isinstance(mac_list, str):
         mac_list = [mac_list]
@@ -21,18 +20,21 @@ def scan_mac():
         for mac in mac_list:
             mac = mac.lower()
 
-            # ✅ Check if MAC exists in DB
+            # 1. Look up the device record
             device = Device.query.filter_by(mac_address=mac).first()
-            if not device:
+            
+            # 2. Strict Check: If device doesn't exist OR it points to an orphan student relation
+            if not device or not device.owner:
                 results["unknown"].append(mac)
                 continue
 
-            # Prevent duplicate logs for same student/device today
+            # 3. Check for existing daily duplicate logs cleanly
             existing_log = AttendanceLog.query.filter_by(
                 student_id=device.student_id,
                 device_id=device.device_id
             ).filter(func.date(AttendanceLog.timestamp) == func.current_date()).first()
 
+            # 4. Safely create the tracking log record since relationships are confirmed
             if not existing_log:
                 new_log = AttendanceLog(
                     student_id=device.student_id,
@@ -41,26 +43,27 @@ def scan_mac():
                 )
                 db.session.add(new_log)
 
-            # Safe relationship access
-            student_name = getattr(device.owner, "first_name", "Unknown")
+            # 5. Build safe metadata response safely
+            student_name = device.owner.first_name if device.owner else "Unknown"
 
             results["students"].append({
                 "student": student_name,
                 "mac_address": mac
             })
 
+        # Commit everything safely inside the transaction scope
         db.session.commit()
 
     except Exception as e:
         db.session.rollback()
+        # Log your exact error trace directly to the terminal output console so you can read it
+        print(f"[CRITICAL BACKEND ERROR]: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
-    # Return grouped results
     if results["students"]:
         return jsonify(results), 201
     else:
         return jsonify(results), 404
-
 # GET /attendance/stats - Present vs Registered totals
 @attendance_bp.route('/stats', methods=['GET'])
 @jwt_required()
