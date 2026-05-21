@@ -18,6 +18,8 @@ scapy = "*"
 requests = "*"
 sqlalchemy-serializer = "*"
 gunicorn = "*"
+netifaces = "*"
+ipaddress = "*"
 
 [dev-packages]
 
