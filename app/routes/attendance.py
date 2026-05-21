@@ -10,7 +10,6 @@ attendance_bp = Blueprint('attendance', __name__)
 def scan_mac():
     data = request.get_json() or {}
 
-    # Accept either a single MAC or a list
     mac_list = data.get("mac_addresses") or []
     if isinstance(mac_list, str):
         mac_list = [mac_list]
@@ -19,7 +18,6 @@ def scan_mac():
 
     try:
         for mac in mac_list:
-            # Normalize MAC format (lowercase with colons)
             mac = mac.lower()
 
             device = Device.query.filter_by(mac_address=mac).first()
@@ -41,13 +39,12 @@ def scan_mac():
                 )
                 db.session.add(new_log)
 
-            # Guard against missing owner relationship
-            student_name = device.owner.first_name if device.owner else "Unknown"
+            # Safe relationship access
+            student_name = getattr(device.owner, "first_name", "Unknown")
 
             results["students"].append({
                 "student": student_name,
-                "mac_address": mac,
-                "timestamp": str(func.now())  # optional: include timestamp
+                "mac_address": mac
             })
 
         db.session.commit()
@@ -56,11 +53,7 @@ def scan_mac():
         db.session.rollback()
         return jsonify({"status": "error", "message": str(e)}), 500
 
-    # If at least one student was logged, return 201
-    if results["students"]:
-        return jsonify(results), 201
-    else:
-        return jsonify(results), 404
+    return jsonify(results), 201 if results["students"] else (jsonify(results), 404)
 
 
 # GET /attendance/stats - Present vs Registered totals
