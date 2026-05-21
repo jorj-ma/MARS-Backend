@@ -7,26 +7,47 @@ from flask_jwt_extended import jwt_required
 attendance_bp = Blueprint('attendance', __name__)
 
 # POST /attendance/scan - Hardware entry point for MAC detection
+# POST /attendance/scan - Hardware entry point for MAC detection
 @attendance_bp.route('/scan', methods=['POST'])
 def scan_mac():
     data = request.get_json() or {}
-    mac = data.get('mac_address')
-    
-    # Check if MAC is registered
-    device = Device.query.filter_by(mac_address=mac).first()
-    if not device:
-        return jsonify({"status": "unknown", "message": "Device not registered"}), 404
 
-    # Log attendance
-    new_log = AttendanceLog(
-        student_id=device.student_id,
-        device_id=device.device_id,
-        status="Active"
-    )
-    db.session.add(new_log)
+    # Accept either a single MAC or a list
+    mac_list = data.get("mac_addresses") or []
+    if isinstance(mac_list, str):
+        mac_list = [mac_list]
+
+    results = {"students": [], "unknown": []}
+
+    for mac in mac_list:
+        # Normalize MAC format (lowercase with colons)
+        mac = mac.lower()
+
+        device = Device.query.filter_by(mac_address=mac).first()
+        if not device:
+            results["unknown"].append(mac)
+            continue
+
+        # Log attendance
+        new_log = AttendanceLog(
+            student_id=device.student_id,
+            device_id=device.device_id,
+            status="Active"
+        )
+        db.session.add(new_log)
+
+        results["students"].append({
+            "student": device.owner.first_name,
+            "mac_address": mac
+        })
+
     db.session.commit()
 
-    return jsonify({"status": "success", "student": device.owner.first_name}), 201
+    # If at least one student was logged, return 201
+    if results["students"]:
+        return jsonify(results), 201
+    else:
+        return jsonify(results), 404
 
 # GET /attendance/stats - Present vs Registered totals
 @attendance_bp.route('/stats', methods=['GET'])
