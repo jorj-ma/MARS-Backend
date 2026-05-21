@@ -42,11 +42,12 @@ def scan_mac():
                 db.session.add(new_log)
 
             # Guard against missing owner relationship
-            student_name = device.owner.first_name if device.owner else " Device Unknown"
+            student_name = device.owner.first_name if device.owner else "Unknown"
 
             results["students"].append({
                 "student": student_name,
-                "mac_address": mac
+                "mac_address": mac,
+                "timestamp": str(func.now())  # optional: include timestamp
             })
 
         db.session.commit()
