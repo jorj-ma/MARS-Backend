@@ -17,6 +17,7 @@ marshmallow-sqlalchemy = "*"
 scapy = "*"
 requests = "*"
 sqlalchemy-serializer = "*"
+gunicorn = "*"
 
 [dev-packages]
 

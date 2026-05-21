@@ -53,16 +53,18 @@ def scan_mac():
 @attendance_bp.route('/stats', methods=['GET'])
 @jwt_required()
 def get_stats():
-    total_students = Student.query.count()
+    total_students = Student.query.count() or 0
     # Count unique students who appeared in logs today
     present_today = db.session.query(AttendanceLog.student_id).distinct().filter(
         func.date(AttendanceLog.timestamp) == func.current_date()
-    ).count()
+    ).count() or 0
+
+    absent_today = max(0, total_students - present_today)
 
     return jsonify({
         "total_registered": total_students,
         "present_today": present_today,
-        "absent_today": total_students - present_today
+        "absent_today":  absent_today
     }), 200
 
 # GET /attendance/live - Stream of recent network connections
@@ -73,6 +75,7 @@ def get_live_stream():
     recent_logs = AttendanceLog.query.order_by(AttendanceLog.timestamp.desc()).limit(10).all()
     logs_data = []
     for log in recent_logs:
+        
         logs_data.append({
             "student": f"{log.student.first_name} {log.student.last_name}",
             "mac": log.device.mac_address,
