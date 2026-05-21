@@ -9,7 +9,6 @@ attendance_bp = Blueprint('attendance', __name__)
 @attendance_bp.route('/scan', methods=['POST'])
 def scan_mac():
     data = request.get_json() or {}
-
     mac_list = data.get("mac_addresses") or []
     if isinstance(mac_list, str):
         mac_list = [mac_list]
@@ -19,7 +18,6 @@ def scan_mac():
     try:
         for mac in mac_list:
             mac = mac.lower()
-
             device = Device.query.filter_by(mac_address=mac).first()
             if not device:
                 results["unknown"].append(mac)
@@ -32,12 +30,11 @@ def scan_mac():
             ).filter(func.date(AttendanceLog.timestamp) == func.current_date()).first()
 
             if not existing_log:
-                new_log = AttendanceLog(
+                db.session.add(AttendanceLog(
                     student_id=device.student_id,
                     device_id=device.device_id,
                     status="Active"
-                )
-                db.session.add(new_log)
+                ))
 
             # Safe relationship access
             student_name = getattr(device.owner, "first_name", "Unknown")
@@ -54,7 +51,6 @@ def scan_mac():
         return jsonify({"status": "error", "message": str(e)}), 500
 
     return jsonify(results), 201 if results["students"] else (jsonify(results), 404)
-
 
 # GET /attendance/stats - Present vs Registered totals
 @attendance_bp.route('/stats', methods=['GET'])
